@@ -121,7 +121,7 @@ export default function Dashboard(props: {
 
           const account = await fetch(`/accounts/${stakingAddress}`, { headers: { project_id: `${process.env.NEXT_PUBLIC_BF_PID}` } });
           const { withdrawable_amount } = await account.json();
-          if (!withdrawable_amount) throw "No stake reward yet!";
+          if (!withdrawable_amount || withdrawable_amount == 0n) throw "No stake reward yet!";
 
           const redeemer = Data.void();
 
@@ -234,6 +234,7 @@ export default function Dashboard(props: {
 
           const account = await fetch(`/accounts/${stakingAddress}`, { headers: { project_id: `${process.env.NEXT_PUBLIC_BF_PID}` } });
           const { withdrawable_amount } = await account.json();
+          if (!withdrawable_amount || withdrawable_amount == 0n) throw "No stake reward yet!";
 
           const redeemer = Data.void();
 
@@ -310,7 +311,16 @@ export default function Dashboard(props: {
           const spendValidatorRedeemer = SpendValidatorRedeemer.In;
           const stakeValidatorRedeemer: RedeemerBuilder = {
             kind: "selected",
-            makeRedeemer: (inputIdxs: bigint[]) => Data.to({ inputIdxs, outputIdxs: inputIdxs.map((_, i) => BigInt(i)) }, StakeValidatorRedeemerType),
+            makeRedeemer: (inputIdxs: bigint[]) =>
+              Data.to(
+                {
+                  inputIdxs, // [bigint]
+                  outputIdxs: inputIdxs.map((_, i) => {
+                    return BigInt(i); // convert number to bigint
+                  }),
+                },
+                StakeValidatorRedeemerType // { [inputIdx], [outputIdx] }
+              ),
             inputs: inputUTXOs,
           };
 
@@ -419,6 +429,7 @@ export default function Dashboard(props: {
 
           const account = await fetch(`/accounts/${stakingAddress}`, { headers: { project_id: `${process.env.NEXT_PUBLIC_BF_PID}` } });
           const { withdrawable_amount } = await account.json();
+          if (!withdrawable_amount || withdrawable_amount == 0n) throw "No stake reward yet!";
 
           const stakeValidatorRedeemer: StakeValidatorRedeemerType = { inputIdxs: [], outputIdxs: [] };
           const redeemer = Data.to(stakeValidatorRedeemer, StakeValidatorRedeemerType);

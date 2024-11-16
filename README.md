@@ -1,65 +1,39 @@
 # aiken_staking_validator
 
-Write validators in the `validators` folder, and supporting functions in the `lib` folder using `.ak` as a file extension.
+This showcase project contains 3 validators:
 
-```aiken
-validator my_first_validator {
-  spend(_datum: Option<Data>, _redeemer: Data, _output_reference: Data, _context: Data) {
-    True
-  }
-}
+- `owner`
+- `dry`
+- `withdraw_0`
+
+To run the offchain:
+
+1. Create a `.env.local` file
+2. Run `pnpm dev`
+
+Your `.env.local` file must contain:
+
+```
+NEXT_PUBLIC_BF_URL=https://cardano-preprod.blockfrost.io/api/v0
+NEXT_PUBLIC_BF_PID=preprodYOUR_PREPROD_BLOCKFROST_PROJECT_ID
+NEXT_PUBLIC_CARDANO_NETWORK=Preprod
 ```
 
-## Building
+To install `pnpm` run `npm i -g pnpm`.
 
-```sh
-aiken build
-```
+## `owner`
 
-## Configuring
+In this validator, we see `withdraw` and `publish` handlers.
 
-**aiken.toml**
-```toml
-[config.default]
-network_id = 41
-```
+## `dry`
 
-Or, alternatively, write conditional environment modules under `env`.
+Here, we utilize the `else` block of a validator.
 
-## Testing
+## `withdraw_0`
 
-You can write tests in any module using the `test` keyword. For example:
+This validator explores the concept of:
 
-```aiken
-use config
+- **Transaction-level validation via withdraw-zero** by **AnastasiaLabs**: https://github.com/Anastasia-Labs/design-patterns/blob/main/stake-validator/STAKE-VALIDATOR.md#validating-the-business-logic-at-staking-validator
+- **Redeemer Indexing Design Pattern** by **AnastasiaLabs**: https://github.com/Anastasia-Labs/design-patterns/blob/main/utxo-indexers/UTXO-INDEXERS.md#redeemer-indexing-design-pattern-enhancing-smart-contract-validation-on-cardano
 
-test foo() {
-  config.network_id + 1 == 42
-}
-```
-
-To run all tests, simply do:
-
-```sh
-aiken check
-```
-
-To run only tests matching the string `foo`, do:
-
-```sh
-aiken check -m foo
-```
-
-## Documentation
-
-If you're writing a library, you might want to generate an HTML documentation for it.
-
-Use:
-
-```sh
-aiken docs
-```
-
-## Resources
-
-Find more on the [Aiken's user manual](https://aiken-lang.org).
+We see how these 2 concepts can be combined together.

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import WalletConnectors from "@/components/WalletConnectors";
 import Dashboard from "@/components/Dashboard";
 
-import { Address, Blockfrost, Data, Lucid, LucidEvolution, Network, RedeemerBuilder } from "@lucid-evolution/lucid";
+import { Address, Blockfrost, Lucid, LucidEvolution, Network } from "@lucid-evolution/lucid";
 import { Wallet } from "@/types/cardano";
 
 export default function Home() {
