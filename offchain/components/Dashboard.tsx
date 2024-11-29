@@ -1,6 +1,5 @@
 import { Accordion, AccordionItem } from "@nextui-org/accordion";
 
-import * as Script from "@/types/script";
 import { ActionGroup } from "@/types/action";
 import OwnerDry from "./actions/OwnerDry";
 import Withdraw0 from "./actions/Withdraw0";
@@ -27,6 +26,8 @@ import {
   validatorToRewardAddress,
   validatorToScriptHash,
 } from "@lucid-evolution/lucid";
+import { network } from "@/config/lucid";
+import * as Script from "@/config/script";
 
 export default function Dashboard(props: {
   lucid: LucidEvolution;
@@ -55,9 +56,9 @@ export default function Dashboard(props: {
           const stakingCredential = scriptHashToCredential(stakingScriptHash);
 
           const spendingValidator: SpendingValidator = { type: "PlutusV3", script: Script.SpendOwner };
-          const validatorAddress = validatorToAddress(lucid.config().network, spendingValidator, stakingCredential);
+          const validatorAddress = validatorToAddress(network, spendingValidator, stakingCredential);
 
-          const tx = await lucid.newTx().pay.ToAddress(validatorAddress, { lovelace }).complete();
+          const tx = await lucid.newTx().pay.ToAddress(validatorAddress, { lovelace }).complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -75,12 +76,12 @@ export default function Dashboard(props: {
           const stakingCredential = scriptHashToCredential(stakingScriptHash);
 
           const spendingValidator: SpendingValidator = { type: "PlutusV3", script: Script.SpendOwner };
-          const validatorAddress = validatorToAddress(lucid.config().network, spendingValidator, stakingCredential);
+          const validatorAddress = validatorToAddress(network, spendingValidator, stakingCredential);
 
           const utxos = await lucid.utxosAt(validatorAddress);
           const redeemer = Data.void();
 
-          const tx = await lucid.newTx().collectFrom(utxos, redeemer).attach.SpendingValidator(spendingValidator).complete();
+          const tx = await lucid.newTx().collectFrom(utxos, redeemer).attach.SpendingValidator(spendingValidator).complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -94,16 +95,18 @@ export default function Dashboard(props: {
 
           const stakingScript = applyParamsToScript(Script.StakeOwner, [pkh]);
           const stakingValidator: Validator = { type: "PlutusV3", script: stakingScript };
-          const stakingAddress = validatorToRewardAddress(lucid.config().network, stakingValidator);
+          const stakingAddress = validatorToRewardAddress(network, stakingValidator);
 
           const redeemer = Data.void();
 
+          console.log({ stakingAddress, poolID, dRep, redeemer });
           const tx = await lucid
             .newTx()
             .registerAndDelegate.ToPoolAndDRep(stakingAddress, poolID, dRep, redeemer)
             .attach.CertificateValidator(stakingValidator)
             .addSigner(address)
-            .complete();
+            .complete({ localUPLCEval: false });
+          console.log(tx.toCBOR());
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -117,20 +120,24 @@ export default function Dashboard(props: {
 
           const stakingScript = applyParamsToScript(Script.StakeOwner, [pkh]);
           const stakingValidator: Validator = { type: "PlutusV3", script: stakingScript };
-          const stakingAddress = validatorToRewardAddress(lucid.config().network, stakingValidator);
+          const stakingAddress = validatorToRewardAddress(network, stakingValidator);
 
-          const account = await fetch(`/accounts/${stakingAddress}`, { headers: { project_id: `${process.env.NEXT_PUBLIC_BF_PID}` } });
-          const { withdrawable_amount } = await account.json();
-          if (!withdrawable_amount || withdrawable_amount == 0n) throw "No stake reward yet!";
+          const accounts = await fetch("/koios/account_info?select=rewards_available", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ _stake_addresses: [stakingAddress] }),
+          });
+          const [{ rewards_available }] = await accounts.json();
+          if (!rewards_available) throw "No stake rewards yet!";
 
           const redeemer = Data.void();
 
           const tx = await lucid
             .newTx()
-            .withdraw(stakingAddress, BigInt(withdrawable_amount), redeemer)
+            .withdraw(stakingAddress, BigInt(rewards_available), redeemer)
             .attach.WithdrawalValidator(stakingValidator)
             .addSigner(address)
-            .complete();
+            .complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -144,11 +151,16 @@ export default function Dashboard(props: {
 
           const stakingScript = applyParamsToScript(Script.StakeOwner, [pkh]);
           const stakingValidator: Validator = { type: "PlutusV3", script: stakingScript };
-          const stakingAddress = validatorToRewardAddress(lucid.config().network, stakingValidator);
+          const stakingAddress = validatorToRewardAddress(network, stakingValidator);
 
           const redeemer = Data.void();
 
-          const tx = await lucid.newTx().deRegisterStake(stakingAddress, redeemer).attach.CertificateValidator(stakingValidator).addSigner(address).complete();
+          const tx = await lucid
+            .newTx()
+            .deRegisterStake(stakingAddress, redeemer)
+            .attach.CertificateValidator(stakingValidator)
+            .addSigner(address)
+            .complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -168,9 +180,9 @@ export default function Dashboard(props: {
           const stakingCredential = scriptHashToCredential(stakingScriptHash);
 
           const spendingValidator: SpendingValidator = { type: "PlutusV3", script: Script.SpendDRY };
-          const validatorAddress = validatorToAddress(lucid.config().network, spendingValidator, stakingCredential);
+          const validatorAddress = validatorToAddress(network, spendingValidator, stakingCredential);
 
-          const tx = await lucid.newTx().pay.ToAddress(validatorAddress, { lovelace }).complete();
+          const tx = await lucid.newTx().pay.ToAddress(validatorAddress, { lovelace }).complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -188,12 +200,12 @@ export default function Dashboard(props: {
           const stakingCredential = scriptHashToCredential(stakingScriptHash);
 
           const spendingValidator: SpendingValidator = { type: "PlutusV3", script: Script.SpendDRY };
-          const validatorAddress = validatorToAddress(lucid.config().network, spendingValidator, stakingCredential);
+          const validatorAddress = validatorToAddress(network, spendingValidator, stakingCredential);
 
           const utxos = await lucid.utxosAt(validatorAddress);
           const redeemer = Data.void();
 
-          const tx = await lucid.newTx().collectFrom(utxos, redeemer).attach.SpendingValidator(spendingValidator).complete();
+          const tx = await lucid.newTx().collectFrom(utxos, redeemer).attach.SpendingValidator(spendingValidator).complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -207,7 +219,7 @@ export default function Dashboard(props: {
 
           const stakingScript = applyParamsToScript(Script.StakeDRY, [pkh]);
           const stakingValidator: Validator = { type: "PlutusV3", script: stakingScript };
-          const stakingAddress = validatorToRewardAddress(lucid.config().network, stakingValidator);
+          const stakingAddress = validatorToRewardAddress(network, stakingValidator);
 
           const redeemer = Data.void();
 
@@ -216,7 +228,7 @@ export default function Dashboard(props: {
             .registerAndDelegate.ToPoolAndDRep(stakingAddress, poolID, dRep, redeemer)
             .attach.CertificateValidator(stakingValidator)
             .addSigner(address)
-            .complete();
+            .complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -230,20 +242,24 @@ export default function Dashboard(props: {
 
           const stakingScript = applyParamsToScript(Script.StakeDRY, [pkh]);
           const stakingValidator: Validator = { type: "PlutusV3", script: stakingScript };
-          const stakingAddress = validatorToRewardAddress(lucid.config().network, stakingValidator);
+          const stakingAddress = validatorToRewardAddress(network, stakingValidator);
 
-          const account = await fetch(`/accounts/${stakingAddress}`, { headers: { project_id: `${process.env.NEXT_PUBLIC_BF_PID}` } });
-          const { withdrawable_amount } = await account.json();
-          if (!withdrawable_amount || withdrawable_amount == 0n) throw "No stake reward yet!";
+          const accounts = await fetch("/koios/account_info?select=rewards_available", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ _stake_addresses: [stakingAddress] }),
+          });
+          const [{ rewards_available }] = await accounts.json();
+          if (!rewards_available) throw "No stake rewards yet!";
 
           const redeemer = Data.void();
 
           const tx = await lucid
             .newTx()
-            .withdraw(stakingAddress, BigInt(withdrawable_amount), redeemer)
+            .withdraw(stakingAddress, BigInt(rewards_available), redeemer)
             .attach.WithdrawalValidator(stakingValidator)
             .addSigner(address)
-            .complete();
+            .complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -257,11 +273,16 @@ export default function Dashboard(props: {
 
           const stakingScript = applyParamsToScript(Script.StakeDRY, [pkh]);
           const stakingValidator: Validator = { type: "PlutusV3", script: stakingScript };
-          const stakingAddress = validatorToRewardAddress(lucid.config().network, stakingValidator);
+          const stakingAddress = validatorToRewardAddress(network, stakingValidator);
 
           const redeemer = Data.void();
 
-          const tx = await lucid.newTx().deRegisterStake(stakingAddress, redeemer).attach.CertificateValidator(stakingValidator).addSigner(address).complete();
+          const tx = await lucid
+            .newTx()
+            .deRegisterStake(stakingAddress, redeemer)
+            .attach.CertificateValidator(stakingValidator)
+            .addSigner(address)
+            .complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -281,12 +302,12 @@ export default function Dashboard(props: {
           const stakingCredential = scriptHashToCredential(stakingScriptHash);
 
           const spendingValidator: SpendingValidator = { type: "PlutusV3", script };
-          const validatorAddress = validatorToAddress(lucid.config().network, spendingValidator, stakingCredential);
+          const validatorAddress = validatorToAddress(network, spendingValidator, stakingCredential);
 
           const spendValidatorDatum: SpendValidatorDatumType = { spendableAfter, spendableBy: `${getAddressDetails(spendableBy).paymentCredential?.hash}` };
           const datum = Data.to(spendValidatorDatum, SpendValidatorDatumType);
 
-          const tx = await lucid.newTx().pay.ToContract(validatorAddress, { kind: "inline", value: datum }).complete();
+          const tx = await lucid.newTx().pay.ToContract(validatorAddress, { kind: "inline", value: datum }).complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -304,7 +325,7 @@ export default function Dashboard(props: {
           const stakingValidator: Validator = { type: "PlutusV3", script };
           const stakingScriptHash = validatorToScriptHash(stakingValidator);
           const stakingCredential = scriptHashToCredential(stakingScriptHash);
-          const stakingAddress = credentialToRewardAddress(lucid.config().network, stakingCredential);
+          const stakingAddress = credentialToRewardAddress(network, stakingCredential);
 
           const spendingValidator: SpendingValidator = { type: "PlutusV3", script };
 
@@ -335,7 +356,7 @@ export default function Dashboard(props: {
             .withdraw(stakingAddress, 0n, stakeValidatorRedeemer)
             .attach.WithdrawalValidator(stakingValidator)
             .addSigner(address)
-            .complete();
+            .complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -354,7 +375,7 @@ export default function Dashboard(props: {
           const senderStakingCredential = scriptHashToCredential(senderStakingScriptHash);
 
           const senderSpendingValidator: SpendingValidator = { type: "PlutusV3", script: senderScript };
-          const senderValidatorAddress = validatorToAddress(lucid.config().network, senderSpendingValidator, senderStakingCredential);
+          const senderValidatorAddress = validatorToAddress(network, senderSpendingValidator, senderStakingCredential);
           //#endregion
 
           //#region Own
@@ -366,12 +387,12 @@ export default function Dashboard(props: {
           const ownStakingCredential = scriptHashToCredential(ownStakingScriptHash);
 
           const ownSpendingValidator: SpendingValidator = { type: "PlutusV3", script: ownScript };
-          const ownValidatorAddress = validatorToAddress(lucid.config().network, ownSpendingValidator, ownStakingCredential);
+          const ownValidatorAddress = validatorToAddress(network, ownSpendingValidator, ownStakingCredential);
           //#endregion
 
-          const block = await fetch("/blocks/latest", { headers: { project_id: `${process.env.NEXT_PUBLIC_BF_PID}` } });
-          const { time } = await block.json();
-          const now = time * 1_000;
+          const blocks = await fetch("/koios/tip?select=block_time");
+          const [{ block_time }] = await blocks.json();
+          const now = block_time * 1_000;
 
           const utxos = (await lucid.utxosAt(senderValidatorAddress)).filter(({ datum }) => {
             if (senderValidatorAddress === ownValidatorAddress) return !datum;
@@ -387,7 +408,7 @@ export default function Dashboard(props: {
             .attach.SpendingValidator(senderSpendingValidator)
             .addSigner(address)
             .validFrom(now)
-            .complete();
+            .complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -401,7 +422,7 @@ export default function Dashboard(props: {
           const script = applyParamsToScript(Script.Withdraw0, [pkh]);
 
           const stakingValidator: Validator = { type: "PlutusV3", script };
-          const stakingAddress = validatorToRewardAddress(lucid.config().network, stakingValidator);
+          const stakingAddress = validatorToRewardAddress(network, stakingValidator);
 
           const stakeValidatorRedeemer: StakeValidatorRedeemerType = { inputIdxs: [], outputIdxs: [] };
           const redeemer = Data.to(stakeValidatorRedeemer, StakeValidatorRedeemerType);
@@ -411,7 +432,7 @@ export default function Dashboard(props: {
             .registerAndDelegate.ToPoolAndDRep(stakingAddress, poolID, dRep, redeemer)
             .attach.CertificateValidator(stakingValidator)
             .addSigner(address)
-            .complete();
+            .complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -425,21 +446,25 @@ export default function Dashboard(props: {
           const script = applyParamsToScript(Script.Withdraw0, [pkh]);
 
           const stakingValidator: Validator = { type: "PlutusV3", script };
-          const stakingAddress = validatorToRewardAddress(lucid.config().network, stakingValidator);
+          const stakingAddress = validatorToRewardAddress(network, stakingValidator);
 
-          const account = await fetch(`/accounts/${stakingAddress}`, { headers: { project_id: `${process.env.NEXT_PUBLIC_BF_PID}` } });
-          const { withdrawable_amount } = await account.json();
-          if (!withdrawable_amount || withdrawable_amount == 0n) throw "No stake reward yet!";
+          const accounts = await fetch("/koios/account_info?select=rewards_available", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ _stake_addresses: [stakingAddress] }),
+          });
+          const [{ rewards_available }] = await accounts.json();
+          if (!rewards_available) throw "No stake rewards yet!";
 
           const stakeValidatorRedeemer: StakeValidatorRedeemerType = { inputIdxs: [], outputIdxs: [] };
           const redeemer = Data.to(stakeValidatorRedeemer, StakeValidatorRedeemerType);
 
           const tx = await lucid
             .newTx()
-            .withdraw(stakingAddress, BigInt(withdrawable_amount), redeemer)
+            .withdraw(stakingAddress, BigInt(rewards_available), redeemer)
             .attach.WithdrawalValidator(stakingValidator)
             .addSigner(address)
-            .complete();
+            .complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -453,12 +478,17 @@ export default function Dashboard(props: {
           const script = applyParamsToScript(Script.Withdraw0, [pkh]);
 
           const stakingValidator: Validator = { type: "PlutusV3", script };
-          const stakingAddress = validatorToRewardAddress(lucid.config().network, stakingValidator);
+          const stakingAddress = validatorToRewardAddress(network, stakingValidator);
 
           const stakeValidatorRedeemer: StakeValidatorRedeemerType = { inputIdxs: [], outputIdxs: [] };
           const redeemer = Data.to(stakeValidatorRedeemer, StakeValidatorRedeemerType);
 
-          const tx = await lucid.newTx().deRegisterStake(stakingAddress, redeemer).attach.CertificateValidator(stakingValidator).addSigner(address).complete();
+          const tx = await lucid
+            .newTx()
+            .deRegisterStake(stakingAddress, redeemer)
+            .attach.CertificateValidator(stakingValidator)
+            .addSigner(address)
+            .complete({ localUPLCEval: false });
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {

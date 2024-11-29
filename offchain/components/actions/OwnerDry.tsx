@@ -78,9 +78,13 @@ export default function OwnerDry(props: {
 
     useEffect(() => {
       if (!dRepID) return; // skip
-      fetch(`/governance/dreps/${dRepID}`, { headers: { project_id: `${process.env.NEXT_PUBLIC_BF_PID}` } })
-        .then((dRep) => dRep.json())
-        .then(({ hex, has_script }) => {
+      fetch("/koios/drep_info?select=hex,has_script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _drep_ids: [dRepID] }),
+      })
+        .then((dReps) => dReps.json())
+        .then(([{ hex, has_script }]) => {
           const credential: Credential = {
             type: has_script ? "Script" : "Key",
             hash: hex,

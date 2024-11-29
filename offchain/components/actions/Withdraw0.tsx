@@ -28,9 +28,10 @@ import {
   validatorToAddress,
   validatorToScriptHash,
 } from "@lucid-evolution/lucid";
+import { network } from "@/config/lucid";
+import * as Script from "@/config/script";
 import { SpendValidatorDatumType } from "@/types/withdraw0";
 import { Action } from "@/types/action";
-import * as Script from "@/types/script";
 
 export default function Withdraw0(props: {
   lucid: LucidEvolution;
@@ -55,10 +56,10 @@ export default function Withdraw0(props: {
     const [spendableBy, setSpendableBy] = useState("");
 
     useEffect(() => {
-      fetch("/blocks/latest", { headers: { project_id: `${process.env.NEXT_PUBLIC_BF_PID}` } })
-        .then((block) => block.json())
-        .then(({ time }) => {
-          const now = IntrDate.fromAbsolute(time * 1_000, localTimeZone);
+      fetch("/koios/tip?select=block_time")
+        .then((blocks) => blocks.json())
+        .then(([{ block_time }]) => {
+          const now = IntrDate.fromAbsolute(block_time * 1_000, localTimeZone);
           setNow(now);
 
           const epochMS = now.toDate().getTime();
@@ -121,7 +122,7 @@ export default function Withdraw0(props: {
       const stakingCredential = scriptHashToCredential(stakingScriptHash);
 
       const spendingValidator: SpendingValidator = { type: "PlutusV3", script };
-      const validatorAddress = validatorToAddress(lucid.config().network, spendingValidator, stakingCredential);
+      const validatorAddress = validatorToAddress(network, spendingValidator, stakingCredential);
       lucid.utxosAt(validatorAddress).then(setInputUTXOs).catch(onError);
     }, []);
 
@@ -267,9 +268,13 @@ export default function Withdraw0(props: {
 
     useEffect(() => {
       if (!dRepID) return; // skip
-      fetch(`/governance/dreps/${dRepID}`, { headers: { project_id: `${process.env.NEXT_PUBLIC_BF_PID}` } })
-        .then((dRep) => dRep.json())
-        .then(({ hex, has_script }) => {
+      fetch("/koios/drep_info?select=hex,has_script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _drep_ids: [dRepID] }),
+      })
+        .then((dReps) => dReps.json())
+        .then(([{ hex, has_script }]) => {
           const credential: Credential = {
             type: has_script ? "Script" : "Key",
             hash: hex,
