@@ -149,15 +149,15 @@ validator withdraw_0(pkh: VerificationKeyHash) {
         expect StakeValidatorRedeemer { input_idxs, output_idxs } =
           stake_validator_redeemer
 
-        // count the unique input indices
+        // get unique input & output indices
         let unique_input_idxs = input_idxs |> list.unique
         let unique_output_idxs = output_idxs |> list.unique
 
-        // count the unique output indices
+        // count unique input & output indices
         let unique_input_idxs_length = unique_input_idxs |> list.length
         let unique_output_idxs_length = unique_output_idxs |> list.length
 
-        // check that there are no duplicate indices in either of the lists
+        // input indices length == output indices length must be the same == self_credential TxInputs count
         expect unique_input_idxs_length == unique_output_idxs_length
         expect unique_output_idxs_length == {
             let input <- list.count(tx.inputs)
