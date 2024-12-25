@@ -94,7 +94,8 @@ validator withdraw_0(pkh: VerificationKeyHash) {
   ) {
     when redeemer is {
       In -> {
-        // forward the validation to Withdraw script
+        // delegate the validations to the staking script,
+        // which will only be executed once for the entire transaction
         expect Some(input) = tx.inputs |> transaction.find_input(o_ref)
         pairs.has_key(tx.withdrawals, input.output.address.payment_credential)?
       }
@@ -157,7 +158,7 @@ validator withdraw_0(pkh: VerificationKeyHash) {
         let unique_input_idxs_length = unique_input_idxs |> list.length
         let unique_output_idxs_length = unique_output_idxs |> list.length
 
-        // input indices length == output indices length must be the same == self_credential TxInputs count
+        // input indices length == output indices length == self_credential TxInputs count
         expect unique_input_idxs_length == unique_output_idxs_length
         expect unique_output_idxs_length == {
             let input <- list.count(tx.inputs)

@@ -99,14 +99,12 @@ export default function Dashboard(props: {
 
           const redeemer = Data.void();
 
-          console.log({ stakingAddress, poolID, dRep, redeemer });
           const tx = await lucid
             .newTx()
             .registerAndDelegate.ToPoolAndDRep(stakingAddress, poolID, dRep, redeemer)
             .attach.CertificateValidator(stakingValidator)
             .addSigner(address)
             .complete({ localUPLCEval: false });
-          console.log(tx.toCBOR());
 
           submitTx(tx).then(setActionResult).catch(onError);
         } catch (error) {
@@ -128,7 +126,7 @@ export default function Dashboard(props: {
             body: JSON.stringify({ _stake_addresses: [stakingAddress] }),
           });
           const [{ rewards_available }] = await accounts.json();
-          if (!rewards_available) throw "No stake rewards yet!";
+          if (!rewards_available || rewards_available == 0) throw "No stake rewards yet!";
 
           const redeemer = Data.void();
 
@@ -250,7 +248,7 @@ export default function Dashboard(props: {
             body: JSON.stringify({ _stake_addresses: [stakingAddress] }),
           });
           const [{ rewards_available }] = await accounts.json();
-          if (!rewards_available) throw "No stake rewards yet!";
+          if (!rewards_available || rewards_available == 0) throw "No stake rewards yet!";
 
           const redeemer = Data.void();
 
@@ -350,10 +348,18 @@ export default function Dashboard(props: {
             newTx = newTx.pay.ToContract(address, { kind: "inline", value: `${datum}` }, { lovelace: outputLovelaces[i] }, scriptRef ?? undefined);
           });
 
+          const accounts = await fetch("/koios/account_info?select=rewards_available", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ _stake_addresses: [stakingAddress] }),
+          });
+          const [{ rewards_available }] = await accounts.json();
+          // we could no-longer simply withdraw zero; if rewards have been accumulated we would have to withdraw the accumulated amount of rewards
+          // https://github.com/Anastasia-Labs/design-patterns/blob/main/stake-validator/STAKE-VALIDATOR-TRICK.md#important-considerations
           const tx = await newTx
             .collectFrom(inputUTXOs, spendValidatorRedeemer)
             .attach.SpendingValidator(spendingValidator)
-            .withdraw(stakingAddress, 0n, stakeValidatorRedeemer)
+            .withdraw(stakingAddress, BigInt(rewards_available), stakeValidatorRedeemer)
             .attach.WithdrawalValidator(stakingValidator)
             .addSigner(address)
             .complete({ localUPLCEval: false });
@@ -398,8 +404,8 @@ export default function Dashboard(props: {
             if (senderValidatorAddress === ownValidatorAddress) return !datum;
             if (!datum) return false;
 
-            const { spendableAfter, spendableBy } = Data.from(datum, SpendValidatorDatumType);
-            return now > spendableAfter && ownPKH === spendableBy;
+            const { /* spendableAfter, */ spendableBy } = Data.from(datum, SpendValidatorDatumType);
+            return /* now > spendableAfter && */ ownPKH === spendableBy;
           });
 
           const tx = await lucid
@@ -454,7 +460,7 @@ export default function Dashboard(props: {
             body: JSON.stringify({ _stake_addresses: [stakingAddress] }),
           });
           const [{ rewards_available }] = await accounts.json();
-          if (!rewards_available) throw "No stake rewards yet!";
+          if (!rewards_available || rewards_available == 0) throw "No stake rewards yet!";
 
           const stakeValidatorRedeemer: StakeValidatorRedeemerType = { inputIdxs: [], outputIdxs: [] };
           const redeemer = Data.to(stakeValidatorRedeemer, StakeValidatorRedeemerType);
