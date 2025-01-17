@@ -49,7 +49,7 @@ export default function OwnerDry(props: {
                 </ModalBody>
                 <ModalFooter>
                   <Button
-                    onClick={() => onDeposit(lovelace).then(onClose)}
+                    onPress={() => onDeposit(lovelace).then(onClose)}
                     className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg"
                     radius="full"
                   >
@@ -136,7 +136,7 @@ export default function OwnerDry(props: {
                 <ModalFooter>
                   <div className="relative">
                     <Button
-                      onClick={() => onDelegateStake({ poolID, dRep }).then(onClose)}
+                      onPress={() => onDelegateStake({ poolID, dRep }).then(onClose)}
                       isDisabled={isDRepCredential(dRep) && !dRepCredentialHash}
                       className={`bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg
                       ${isDRepCredential(dRep) && dRepID && !dRepCredentialHash && "invisible"}`}
@@ -163,15 +163,15 @@ export default function OwnerDry(props: {
 
       <DepositButton />
 
-      <Button onClick={onWithdrawStake} className="bg-gradient-to-tr from-slate-500 to-emerald-500 text-white shadow-lg" radius="full">
+      <Button onPress={onWithdrawStake} className="bg-gradient-to-tr from-slate-500 to-emerald-500 text-white shadow-lg" radius="full">
         Withdraw Stake Rewards
       </Button>
 
-      <Button onClick={onWithdraw} className="bg-gradient-to-tr from-primary-500 to-teal-500 text-white shadow-lg" radius="full">
+      <Button onPress={onWithdraw} className="bg-gradient-to-tr from-primary-500 to-teal-500 text-white shadow-lg" radius="full">
         Withdraw from Spend
       </Button>
 
-      <Button onClick={onUnregisterStake} className="bg-gradient-to-tr from-slate-500 to-emerald-500 text-white shadow-lg" radius="full">
+      <Button onPress={onUnregisterStake} className="bg-gradient-to-tr from-slate-500 to-emerald-500 text-white shadow-lg" radius="full">
         Deregister Stake
       </Button>
     </div>

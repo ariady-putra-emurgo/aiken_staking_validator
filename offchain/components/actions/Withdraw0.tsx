@@ -88,12 +88,12 @@ export default function Withdraw0(props: {
                     showMonthAndYearPickers
                     minValue={now}
                     defaultValue={now}
-                    onChange={(value) => setSpendableAfter(BigInt(value.toDate().getTime()))}
+                    onChange={(value) => setSpendableAfter((spendableAfter) => (value ? BigInt(value.toDate().getTime()) : spendableAfter))}
                   />
                 </ModalBody>
                 <ModalFooter>
                   <Button
-                    onClick={() => onCreate({ spendableAfter, spendableBy }).then(onClose).catch(onError)}
+                    onPress={() => onCreate({ spendableAfter, spendableBy }).then(onClose).catch(onError)}
                     className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg"
                     radius="full"
                   >
@@ -203,7 +203,7 @@ export default function Withdraw0(props: {
                 </ModalBody>
                 <ModalFooter>
                   <Button
-                    onClick={() => collectDeposit().then(onDeposit).then(onClose).catch(onError)}
+                    onPress={() => collectDeposit().then(onDeposit).then(onClose).catch(onError)}
                     className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg"
                     radius="full"
                   >
@@ -239,7 +239,7 @@ export default function Withdraw0(props: {
                 </ModalBody>
                 <ModalFooter>
                   <Button
-                    onClick={() => onWithdraw(fromSender).then(onClose).catch(onError)}
+                    onPress={() => onWithdraw(fromSender).then(onClose).catch(onError)}
                     className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg"
                     radius="full"
                   >
@@ -326,7 +326,7 @@ export default function Withdraw0(props: {
                 <ModalFooter>
                   <div className="relative">
                     <Button
-                      onClick={() => onDelegateStake({ poolID, dRep }).then(onClose).catch(onError)}
+                      onPress={() => onDelegateStake({ poolID, dRep }).then(onClose).catch(onError)}
                       isDisabled={isDRepCredential(dRep) && !dRepCredentialHash}
                       className={`bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg
                       ${isDRepCredential(dRep) && dRepID && !dRepCredentialHash && "invisible"}`}
@@ -355,13 +355,13 @@ export default function Withdraw0(props: {
 
       <DepositButton />
 
-      <Button onClick={onWithdrawStake} className="bg-gradient-to-tr from-slate-500 to-emerald-500 text-white shadow-lg" radius="full">
+      <Button onPress={onWithdrawStake} className="bg-gradient-to-tr from-slate-500 to-emerald-500 text-white shadow-lg" radius="full">
         Withdraw Stake Rewards
       </Button>
 
       <WithdrawButton />
 
-      <Button onClick={onUnregisterStake} className="bg-gradient-to-tr from-slate-500 to-emerald-500 text-white shadow-lg" radius="full">
+      <Button onPress={onUnregisterStake} className="bg-gradient-to-tr from-slate-500 to-emerald-500 text-white shadow-lg" radius="full">
         Deregister Stake
       </Button>
     </div>
