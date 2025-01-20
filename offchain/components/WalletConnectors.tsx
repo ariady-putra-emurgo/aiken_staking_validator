@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@nextui-org/button";
+
 import { Wallet } from "@/types/cardano";
 
-export default function WalletConnectors(props: { onConnectWallet: (wallet: Wallet) => Promise<void> }) {
+export default function WalletConnectors(props: {
+  onConnectWallet: (wallet: Wallet) => Promise<void>;
+}) {
   const { onConnectWallet } = props;
 
   const [wallets, setWallets] = useState<Wallet[]>();
@@ -27,18 +30,20 @@ export default function WalletConnectors(props: { onConnectWallet: (wallet: Wall
 
   ///////////////////////////////////////////////////////////////////////////////////
 
-  if (!wallets) return <span className="uppercase">Browsing Cardano Wallets</span>;
+  if (!wallets)
+    return <span className="uppercase">Browsing Cardano Wallets</span>;
 
-  if (!wallets.length) return <span className="uppercase">No Cardano Wallet</span>;
+  if (!wallets.length)
+    return <span className="uppercase">No Cardano Wallet</span>;
 
   return (
     <div className="flex flex-wrap gap-2">
       {wallets.map((wallet, w) => (
         <Button
           key={`wallet.${w}`}
-          onPress={() => onConnectWallet(wallet)}
           className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg capitalize"
           radius="full"
+          onPress={() => onConnectWallet(wallet)}
         >
           {wallet.name}
         </Button>

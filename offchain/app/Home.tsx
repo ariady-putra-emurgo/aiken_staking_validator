@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
+import { Address, Lucid, LucidEvolution } from "@lucid-evolution/lucid";
 
 import WalletConnectors from "@/components/WalletConnectors";
 import Dashboard from "@/components/Dashboard";
-
-import { Address, Lucid, LucidEvolution } from "@lucid-evolution/lucid";
 import { network, provider } from "@/config/lucid";
 import { Wallet } from "@/types/cardano";
 
@@ -17,57 +16,78 @@ export default function Home() {
     localStorage.clear();
   }, []);
 
-  //#region utils
+  //#region helper functions
   function handleError(error: any) {
     const { info, message } = error;
+    const errorMessage = `${message}`;
 
-    /**
-     * To parse Lucid error
-     * @param error
-     * @returns error JSON
-     */
-    function toJSON(error: any) {
-      try {
-        const errorString = JSON.stringify(error);
-        const errorJSON = JSON.parse(errorString);
-        return errorJSON;
-      } catch {
-        return {};
-      }
-    }
-
-    const { cause } = toJSON(error);
-    const { failure } = cause ?? {};
-
-    const failureCause = failure?.cause;
-
-    let failureTrace: string | undefined;
     try {
-      failureTrace = eval(failureCause).replaceAll(" Trace ", " \n ");
+      // KoiosError:
+      const a = errorMessage.indexOf("{", 1);
+      const b =
+        errorMessage.lastIndexOf("}", errorMessage.lastIndexOf("}") - 1) + 1;
+
+      const rpc = errorMessage.slice(a, b);
+      const jsonrpc = JSON.parse(rpc);
+
+      const errorData = jsonrpc.error.data[0].error.data;
+
+      try {
+        const { validationError, traces } = errorData;
+
+        setResult(`${validationError} Traces: ${traces.join(", ")}.`);
+        console.error({ [validationError]: traces });
+      } catch {
+        const { reason } = errorData;
+
+        setResult(`${reason}`);
+        console.error(reason);
+      }
     } catch {
-      failureTrace = undefined;
+      function toJSON(error: any) {
+        try {
+          const errorString = JSON.stringify(error);
+          const errorJSON = JSON.parse(errorString);
+
+          return errorJSON;
+        } catch {
+          return {};
+        }
+      }
+
+      const { cause } = toJSON(error);
+      const { failure } = cause ?? {};
+
+      const failureCause = failure?.cause;
+
+      let failureTrace: string | undefined;
+
+      try {
+        failureTrace = eval(failureCause).replaceAll(" Trace ", " \n ");
+      } catch {
+        failureTrace = undefined;
+      }
+
+      const failureInfo = failureCause?.info;
+      const failureMessage = failureCause?.message;
+
+      setResult(
+        `${failureTrace ?? failureInfo ?? failureMessage ?? info ?? message ?? error}`,
+      );
+      console.error(failureCause ?? { error });
     }
-
-    const failureInfo = failureCause?.info;
-    const failureMessage = failureCause?.message;
-
-    setResult(`${failureTrace ?? failureInfo ?? failureMessage ?? info ?? message ?? error}`);
-    console.error(failureCause ?? { error });
   }
 
-  /**
-   * To handle wallet connection events. We will use the wallet address as our connection state,
-   * eg. empty address == not connected; has address == connected;
-   * @param wallet
-   */
   async function onConnectWallet(wallet: Wallet) {
     try {
       if (!lucid) throw "Uninitialized Lucid";
 
       const api = await wallet.enable();
+
       lucid.selectWallet.fromAPI(api);
 
       const address = await lucid.wallet().address();
+
       setAddress(address);
     } catch (error) {
       handleError(error);
@@ -81,7 +101,12 @@ export default function Home() {
         {lucid ? (
           address ? (
             // wallet connected: Show Dashboard
-            <Dashboard address={address} lucid={lucid} onError={handleError} setActionResult={setResult} />
+            <Dashboard
+              address={address}
+              lucid={lucid}
+              setActionResult={setResult}
+              onError={handleError}
+            />
           ) : (
             // no wallet connected yet: Show Wallet button List
             <WalletConnectors onConnectWallet={onConnectWallet} />
@@ -89,7 +114,9 @@ export default function Home() {
         ) : (
           <span className="uppercase">Initializing Lucid</span>
         )}
-        <span className="font-mono break-words whitespace-pre-wrap">{result}</span>
+        <span className="font-mono break-words whitespace-pre-wrap">
+          {result}
+        </span>
       </div>
     </div>
   );
